@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?><process version="9.10.001">
+  <context>
+    <input/>
+    <output/>
+    <macros/>
+  </context>
+  <operator activated="true" class="process" compatibility="9.10.001" expanded="true" name="Process">
+    <parameter key="logverbosity" value="init"/>
+    <parameter key="random_seed" value="2001"/>
+    <parameter key="send_mail" value="never"/>
+    <parameter key="notification_email" value=""/>
+    <parameter key="process_duration_for_mail" value="30"/>
+    <parameter key="encoding" value="SYSTEM"/>
+    <process expanded="true">
+      <operator activated="true" class="retrieve" compatibility="9.10.001" expanded="true" height="68" name="Retrieve AllTickets" width="90" x="112" y="34">
+        <parameter key="repository_entry" value="../Data/AllTicketsSample"/>
+        <description align="center" color="transparent" colored="false" width="126">Retrieve the appended data that contains the ticket body, creation data, and other data points</description>
+      </operator>
+      <operator activated="true" class="sample" compatibility="9.10.001" expanded="true" height="82" name="Sample" width="90" x="246" y="34">
+        <parameter key="sample" value="absolute"/>
+        <parameter key="balance_data" value="true"/>
+        <parameter key="sample_size" value="100"/>
+        <parameter key="sample_ratio" value="0.1"/>
+        <parameter key="sample_probability" value="0.1"/>
+        <list key="sample_size_per_class">
+          <parameter key="Apple" value="2500"/>
+          <parameter key="3DPrinting" value="1250"/>
+          <parameter key="Unix" value="3300"/>
+          <parameter key="Dba" value="2150"/>
+          <parameter key="Android" value="1800"/>
+        </list>
+        <list key="sample_ratio_per_class"/>
+        <list key="sample_probability_per_class"/>
+        <parameter key="use_local_random_seed" value="true"/>
+        <parameter key="local_random_seed" value="1992"/>
+        <description align="center" color="transparent" colored="false" width="126">Sample by ticket type</description>
+      </operator>
+      <operator activated="true" class="text:process_document_from_data" compatibility="9.4.000" expanded="true" height="82" name="Process Documents from Data" width="90" x="648" y="34">
+        <parameter key="create_word_vector" value="true"/>
+        <parameter key="vector_creation" value="TF-IDF"/>
+        <parameter key="add_meta_information" value="true"/>
+        <parameter key="keep_text" value="false"/>
+        <parameter key="prune_method" value="percentual"/>
+        <parameter key="prune_below_percent" value="0.5"/>
+        <parameter key="prune_above_percent" value="40.0"/>
+        <parameter key="prune_below_absolute" value="2"/>
+        <parameter key="prune_above_absolute" value="10000"/>
+        <parameter key="prune_below_rank" value="0.05"/>
+        <parameter key="prune_above_rank" value="0.95"/>
+        <parameter key="datamanagement" value="double_sparse_array"/>
+        <parameter key="data_management" value="auto"/>
+        <parameter key="select_attributes_and_weights" value="false"/>
+        <list key="specify_weights"/>
+        <process expanded="true">
+          <operator activated="true" class="text:tokenize" compatibility="9.4.000" expanded="true" height="68" name="Tokenize" width="90" x="112" y="34">
+            <parameter key="mode" value="non letters"/>
+            <parameter key="characters" value=".:"/>
+            <parameter key="language" value="English"/>
+            <parameter key="max_token_length" value="3"/>
+            <description align="center" color="transparent" colored="false" width="126">Tokenize on non-letters</description>
+          </operator>
+          <operator activated="true" class="text:transform_cases" compatibility="9.4.000" expanded="true" height="68" name="Transform Cases" width="90" x="246" y="34">
+            <parameter key="transform_to" value="lower case"/>
+            <description align="center" color="transparent" colored="false" width="126">Transform all upper case characters to lower case</description>
+          </operator>
+          <operator activated="true" class="text:filter_stopwords_english" compatibility="9.4.000" expanded="true" height="68" name="Filter Stopwords (English)" width="90" x="380" y="34">
+            <description align="center" color="transparent" colored="false" width="126">Filter stopwords based on the prebuilt English stopwords disctionary</description>
+          </operator>
+          <operator activated="true" class="open_file" compatibility="9.10.001" expanded="true" height="68" name="Open File" width="90" x="380" y="238">
+            <parameter key="resource_type" value="repository blob entry"/>
+            <parameter key="repository_entry" value="../Data/CustomStopwordsLDA.txt"/>
+            <description align="center" color="transparent" colored="false" width="126">Open the CustomStopWords&lt;br/&gt;LDA.txt</description>
+          </operator>
+          <operator activated="true" class="text:filter_stopwords_dictionary" compatibility="9.4.000" expanded="true" height="82" name="Filter Stopwords (Dictionary)" width="90" x="514" y="34">
+            <parameter key="file" value="C:/Users/jchow/Desktop/EnronLDAStopwords.txt"/>
+            <parameter key="case_sensitive" value="false"/>
+            <parameter key="encoding" value="SYSTEM"/>
+            <description align="center" color="transparent" colored="false" width="126">Calls a custom stopwords list to remove parts of URLs posted in the body of the support tickets</description>
+          </operator>
+          <operator activated="true" class="text:filter_by_length" compatibility="9.4.000" expanded="true" height="68" name="Filter Tokens (by Length)" width="90" x="648" y="34">
+            <parameter key="min_chars" value="3"/>
+            <parameter key="max_chars" value="25"/>
+            <description align="center" color="transparent" colored="false" width="126">Removes tokens less than 3 characters</description>
+          </operator>
+          <operator activated="true" class="text:generate_n_grams_terms" compatibility="9.4.000" expanded="true" height="68" name="Generate n-Grams (Terms)" width="90" x="782" y="34">
+            <parameter key="max_length" value="4"/>
+            <description align="center" color="transparent" colored="false" width="126">Generates n-grams up to 4 terms</description>
+          </operator>
+          <connect from_port="document" to_op="Tokenize" to_port="document"/>
+          <connect from_op="Tokenize" from_port="document" to_op="Transform Cases" to_port="document"/>
+          <connect from_op="Transform Cases" from_port="document" to_op="Filter Stopwords (English)" to_port="document"/>
+          <connect from_op="Filter Stopwords (English)" from_port="document" to_op="Filter Stopwords (Dictionary)" to_port="document"/>
+          <connect from_op="Open File" from_port="file" to_op="Filter Stopwords (Dictionary)" to_port="file"/>
+          <connect from_op="Filter Stopwords (Dictionary)" from_port="document" to_op="Filter Tokens (by Length)" to_port="document"/>
+          <connect from_op="Filter Tokens (by Length)" from_port="document" to_op="Generate n-Grams (Terms)" to_port="document"/>
+          <connect from_op="Generate n-Grams (Terms)" from_port="document" to_port="document 1"/>
+          <portSpacing port="source_document" spacing="0"/>
+          <portSpacing port="sink_document 1" spacing="0"/>
+          <portSpacing port="sink_document 2" spacing="0"/>
+          <description align="center" color="gray" colored="true" height="156" resized="true" width="784" x="114" y="423">This subprocess is used to define what a word is for the Process Documents to count. Here the tokenize operator allows the user to define how to extract a word from text. In this process, non-letters is used which is a simple but effective way to tokenize. Transform cases is used to make sure 'The', 'THE', and 'the' are all counted as the same word by transforming everything to lowercase. The Filter Stopwords operators use prebuilt english stopwords dictionary and a custom stopwords dictionary to remove useless words for our analysis. Words and parts of speech like pronouns and conjunctions are removed along with a host of other stopwords. Generate n-Grams is the final operation. This operator pairs tearms together, up to four terms in this process, which then get pruned by the process documents operator. This is utilized to find words that show up together often.</description>
+        </process>
+      </operator>
+      <operator activated="true" class="store" compatibility="9.10.001" expanded="true" height="68" name="Store (2)" width="90" x="983" y="34">
+        <parameter key="repository_entry" value="../Data/TextMinedData"/>
+        <description align="center" color="transparent" colored="false" width="126">Stores data as TextMinedData</description>
+      </operator>
+      <operator activated="true" class="store" compatibility="9.10.001" expanded="true" height="68" name="Store" width="90" x="782" y="85">
+        <parameter key="repository_entry" value="../Results/WordList"/>
+      </operator>
+      <connect from_op="Retrieve AllTickets" from_port="output" to_op="Sample" to_port="example set input"/>
+      <connect from_op="Sample" from_port="example set output" to_op="Process Documents from Data" to_port="example set"/>
+      <connect from_op="Process Documents from Data" from_port="example set" to_op="Store (2)" to_port="input"/>
+      <connect from_op="Process Documents from Data" from_port="word list" to_op="Store" to_port="input"/>
+      <connect from_op="Store (2)" from_port="through" to_port="result 1"/>
+      <connect from_op="Store" from_port="through" to_port="result 2"/>
+      <portSpacing port="source_input 1" spacing="0"/>
+      <portSpacing port="sink_result 1" spacing="0"/>
+      <portSpacing port="sink_result 2" spacing="0"/>
+      <portSpacing port="sink_result 3" spacing="0"/>
+      <description align="center" color="purple" colored="true" height="550" resized="true" width="392" x="32" y="17">&lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; Load the text data from the RapidMiner repository. The retrieve operator can be replaced with any data connector. For example, a read database with a SQL query to an Oracle DB can be made to bring in the data for the process.&lt;br&gt;&lt;br&gt;The sample operator samples the data based on TicketType for prototyping. More importantly, the sample is downsampling by class to help generate a more balanced dataset. This is especially important since were dealing with a 5-class model.</description>
+      <description align="center" color="gray" colored="true" height="551" resized="true" width="499" x="428" y="16">&lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; Process documents does 90% of the work for this process. It is responsible for generating the structured data. The vector creation parameter defines how Process Documents will count tokenized words. This example is leveraging the TF-IDF score (Term Frequency and Individual Document Frequency). This ratio will be used by the AI/ML to predict our ticket type.&lt;br&gt;&lt;br&gt;The Process Documents operator is also a subprocess operator. Inside that subprocess, more operators are placed to help RapdMiner define what a token is. Tokenize, transform cases, filter stopwords, and generate n-grams are just a few examples of the types of operations being utilized inside of the process documents operator.&lt;br/&gt;&lt;br/&gt;That last function of the Process Documents operator is to apply pruning. In this example parcentual pruning is applied in order to reduce the number of tokens extracted. Tokens that do not show up in enough documents are removed. This helps with the number of n-grams being generated by the subprocess.</description>
+    </process>
+  </operator>
+</process>

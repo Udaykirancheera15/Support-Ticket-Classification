@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?><process version="9.9.003">
+  <context>
+    <input/>
+    <output/>
+    <macros/>
+  </context>
+  <operator activated="true" class="process" compatibility="9.9.003" expanded="true" name="Process">
+    <parameter key="logverbosity" value="init"/>
+    <parameter key="random_seed" value="2001"/>
+    <parameter key="send_mail" value="never"/>
+    <parameter key="notification_email" value=""/>
+    <parameter key="process_duration_for_mail" value="30"/>
+    <parameter key="encoding" value="SYSTEM"/>
+    <process expanded="true">
+      <operator activated="true" class="retrieve" compatibility="9.9.003" expanded="true" height="68" name="Retrieve TextMinedData" width="90" x="45" y="34">
+        <parameter key="repository_entry" value="../Data/TextMinedData"/>
+      </operator>
+      <operator activated="true" class="concurrency:cross_validation" compatibility="9.9.003" expanded="true" height="145" name="Validation" width="90" x="380" y="34">
+        <parameter key="split_on_batch_attribute" value="false"/>
+        <parameter key="leave_one_out" value="false"/>
+        <parameter key="number_of_folds" value="10"/>
+        <parameter key="sampling_type" value="stratified sampling"/>
+        <parameter key="use_local_random_seed" value="false"/>
+        <parameter key="local_random_seed" value="1992"/>
+        <parameter key="enable_parallel_execution" value="true"/>
+        <process expanded="true">
+          <operator activated="true" class="naive_bayes" compatibility="9.9.003" expanded="true" height="82" name="Naive Bayes" width="90" x="179" y="34">
+            <parameter key="laplace_correction" value="true"/>
+            <description align="center" color="transparent" colored="false" width="126">Trains a Naive Bayes with the given training set from the Cross Validation folds</description>
+          </operator>
+          <connect from_port="training set" to_op="Naive Bayes" to_port="training set"/>
+          <connect from_op="Naive Bayes" from_port="model" to_port="model"/>
+          <portSpacing port="source_training set" spacing="0"/>
+          <portSpacing port="sink_model" spacing="0"/>
+          <portSpacing port="sink_through 1" spacing="0"/>
+          <description align="center" color="green" colored="true" height="132" resized="true" width="389" x="65" y="299">The Training window delivers training data to a subprocess that is required to generate a model. Most processes will have a Machine Learning algorithm like the Naive Bayes in this process. Other operations can be done on the training side like PCA, Normalization, Feature Selection, etc.</description>
+        </process>
+        <process expanded="true">
+          <operator activated="true" class="apply_model" compatibility="9.9.003" expanded="true" height="82" name="Apply Model" width="90" x="112" y="34">
+            <list key="application_parameters"/>
+            <parameter key="create_view" value="false"/>
+            <description align="center" color="transparent" colored="false" width="126">Applies the model to the testing data from the Cross Validation folds</description>
+          </operator>
+          <operator activated="true" class="performance" compatibility="9.9.003" expanded="true" height="82" name="Performance" width="90" x="246" y="34">
+            <parameter key="use_example_weights" value="true"/>
+            <description align="center" color="transparent" colored="false" width="126">Generates performance metrics and a confusion matrix</description>
+          </operator>
+          <connect from_port="model" to_op="Apply Model" to_port="model"/>
+          <connect from_port="test set" to_op="Apply Model" to_port="unlabelled data"/>
+          <connect from_op="Apply Model" from_port="labelled data" to_op="Performance" to_port="labelled data"/>
+          <connect from_op="Performance" from_port="performance" to_port="performance 1"/>
+          <connect from_op="Performance" from_port="example set" to_port="test set results"/>
+          <portSpacing port="source_model" spacing="0"/>
+          <portSpacing port="source_test set" spacing="0"/>
+          <portSpacing port="source_through 1" spacing="0"/>
+          <portSpacing port="sink_test set results" spacing="0"/>
+          <portSpacing port="sink_performance 1" spacing="0"/>
+          <portSpacing port="sink_performance 2" spacing="0"/>
+          <description align="center" color="orange" colored="true" height="126" resized="true" width="371" x="41" y="299">The Testing subprocess window applies the model to the testing data delivered by the cross validation folds and generates the perfomance vector for the model.</description>
+        </process>
+        <description align="center" color="transparent" colored="false" width="126">A cross-validation evaluating a Naive Bayes model.</description>
+      </operator>
+      <operator activated="true" class="store" compatibility="9.9.003" expanded="true" height="68" name="Store (2)" width="90" x="782" y="136">
+        <parameter key="repository_entry" value="../Results/Performance"/>
+      </operator>
+      <operator activated="true" class="store" compatibility="9.9.003" expanded="true" height="68" name="Store" width="90" x="782" y="34">
+        <parameter key="repository_entry" value="../Results/Model"/>
+      </operator>
+      <connect from_op="Retrieve TextMinedData" from_port="output" to_op="Validation" to_port="example set"/>
+      <connect from_op="Validation" from_port="model" to_op="Store" to_port="input"/>
+      <connect from_op="Validation" from_port="performance 1" to_op="Store (2)" to_port="input"/>
+      <connect from_op="Store (2)" from_port="through" to_port="result 2"/>
+      <connect from_op="Store" from_port="through" to_port="result 1"/>
+      <portSpacing port="source_input 1" spacing="0"/>
+      <portSpacing port="sink_result 1" spacing="0"/>
+      <portSpacing port="sink_result 2" spacing="0"/>
+      <portSpacing port="sink_result 3" spacing="0"/>
+      <description align="center" color="yellow" colored="false" height="481" resized="true" width="498" x="212" y="11">&lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br/&gt;&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;&lt;br&gt;&lt;br&gt;&lt;br&gt;&lt;br&gt;&lt;br&gt;&lt;br&gt;N-fold cross validation is used to build a model and quantify model performance. For this example, accuracy, precision, and recall are tracked to measure the performance of the multi-level classification model predicting the TicketType.&lt;br&gt;&lt;br&gt;The Cross Validation with generate random training and testing sets to build and test the model for performance. The number of sets is defined by the number of folds parameter.&lt;br&gt;&lt;br&gt;This is also a subprocess operator like the Process Documents operator. Thus, inside of the operator, there is another process for training the model and testing the model.</description>
+      <description align="center" color="blue" colored="true" height="481" resized="true" width="197" x="10" y="10">&lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; Retrieve the Structured from the text mining process</description>
+      <description align="center" color="blue" colored="true" height="478" resized="true" width="227" x="713" y="12">&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;Store the model and performance vector</description>
+    </process>
+  </operator>
+</process>

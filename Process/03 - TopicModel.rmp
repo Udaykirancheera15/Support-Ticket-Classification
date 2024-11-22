@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?><process version="9.10.001">
+  <context>
+    <input/>
+    <output/>
+    <macros/>
+  </context>
+  <operator activated="true" class="process" compatibility="9.10.001" expanded="true" name="Process">
+    <parameter key="logverbosity" value="init"/>
+    <parameter key="random_seed" value="2001"/>
+    <parameter key="send_mail" value="never"/>
+    <parameter key="notification_email" value=""/>
+    <parameter key="process_duration_for_mail" value="30"/>
+    <parameter key="encoding" value="SYSTEM"/>
+    <process expanded="true">
+      <operator activated="true" class="retrieve" compatibility="9.10.001" expanded="true" height="68" name="Retrieve AllTickets" width="90" x="45" y="34">
+        <parameter key="repository_entry" value="../Data/AllTickets"/>
+        <description align="center" color="transparent" colored="false" width="126">Retrive Tickets</description>
+      </operator>
+      <operator activated="true" class="sample" compatibility="9.10.001" expanded="true" height="82" name="Sample" width="90" x="179" y="34">
+        <parameter key="sample" value="absolute"/>
+        <parameter key="balance_data" value="true"/>
+        <parameter key="sample_size" value="100"/>
+        <parameter key="sample_ratio" value="0.1"/>
+        <parameter key="sample_probability" value="0.1"/>
+        <list key="sample_size_per_class">
+          <parameter key="Apple" value="2500"/>
+          <parameter key="3DPrinting" value="1250"/>
+          <parameter key="Unix" value="3300"/>
+          <parameter key="Dba" value="2150"/>
+          <parameter key="Android" value="1800"/>
+        </list>
+        <list key="sample_ratio_per_class"/>
+        <list key="sample_probability_per_class"/>
+        <parameter key="use_local_random_seed" value="true"/>
+        <parameter key="local_random_seed" value="1992"/>
+        <description align="center" color="transparent" colored="false" width="126">Sample based on ticket type</description>
+      </operator>
+      <operator activated="true" class="subprocess" compatibility="9.10.001" expanded="true" height="82" name="Preprocess Text" width="90" x="313" y="34">
+        <process expanded="true">
+          <operator activated="true" class="text:data_to_documents" compatibility="9.4.000" expanded="true" height="68" name="Data to Documents" width="90" x="45" y="34">
+            <parameter key="select_attributes_and_weights" value="false"/>
+            <list key="specify_weights"/>
+            <description align="center" color="transparent" colored="false" width="126">Collect the data into documents for preprocessing the text</description>
+          </operator>
+          <operator activated="true" class="loop_collection" compatibility="9.10.001" expanded="true" height="82" name="Preprocess Text (Loop Collection)" width="90" x="246" y="34">
+            <parameter key="set_iteration_macro" value="false"/>
+            <parameter key="macro_name" value="iteration"/>
+            <parameter key="macro_start_value" value="1"/>
+            <parameter key="unfold" value="false"/>
+            <process expanded="true">
+              <operator activated="true" class="text:tokenize" compatibility="9.4.000" expanded="true" height="68" name="Tokenize (2)" width="90" x="45" y="34">
+                <parameter key="mode" value="non letters"/>
+                <parameter key="characters" value=".:"/>
+                <parameter key="language" value="English"/>
+                <parameter key="max_token_length" value="3"/>
+                <description align="center" color="transparent" colored="false" width="126">Tokenize on non letters</description>
+              </operator>
+              <operator activated="true" class="text:transform_cases" compatibility="9.4.000" expanded="true" height="68" name="Transform Cases (2)" width="90" x="179" y="34">
+                <parameter key="transform_to" value="lower case"/>
+                <description align="center" color="transparent" colored="false" width="126">Transform to all lowercase</description>
+              </operator>
+              <operator activated="true" class="text:filter_stopwords_english" compatibility="9.4.000" expanded="true" height="68" name="Filter Stopwords (English) (2)" width="90" x="313" y="34">
+                <description align="center" color="transparent" colored="false" width="126">Remove stopwords</description>
+              </operator>
+              <operator activated="true" class="open_file" compatibility="9.10.001" expanded="true" height="68" name="Open File" width="90" x="313" y="187">
+                <parameter key="resource_type" value="repository blob entry"/>
+                <parameter key="repository_entry" value="../Data/CustomStopwordsLDA.txt"/>
+                <description align="center" color="transparent" colored="false" width="126">Connect to CustomStopwordsLDA</description>
+              </operator>
+              <operator activated="true" class="text:filter_stopwords_dictionary" compatibility="9.4.000" expanded="true" height="82" name="Filter Stopwords (Dictionary) (2)" width="90" x="447" y="34">
+                <parameter key="file" value="C:/Users/jchow/Desktop/EnronLDAStopwords.txt"/>
+                <parameter key="case_sensitive" value="false"/>
+                <parameter key="encoding" value="SYSTEM"/>
+                <description align="center" color="transparent" colored="false" width="126">Remove stopwords from a custom dictionary</description>
+              </operator>
+              <operator activated="true" class="text:filter_by_length" compatibility="9.4.000" expanded="true" height="68" name="Filter Tokens (by Length) (2)" width="90" x="581" y="34">
+                <parameter key="min_chars" value="3"/>
+                <parameter key="max_chars" value="25"/>
+                <description align="center" color="transparent" colored="false" width="126">Remove tokens less than 3 characters</description>
+              </operator>
+              <connect from_port="single" to_op="Tokenize (2)" to_port="document"/>
+              <connect from_op="Tokenize (2)" from_port="document" to_op="Transform Cases (2)" to_port="document"/>
+              <connect from_op="Transform Cases (2)" from_port="document" to_op="Filter Stopwords (English) (2)" to_port="document"/>
+              <connect from_op="Filter Stopwords (English) (2)" from_port="document" to_op="Filter Stopwords (Dictionary) (2)" to_port="document"/>
+              <connect from_op="Open File" from_port="file" to_op="Filter Stopwords (Dictionary) (2)" to_port="file"/>
+              <connect from_op="Filter Stopwords (Dictionary) (2)" from_port="document" to_op="Filter Tokens (by Length) (2)" to_port="document"/>
+              <connect from_op="Filter Tokens (by Length) (2)" from_port="document" to_port="output 1"/>
+              <portSpacing port="source_single" spacing="0"/>
+              <portSpacing port="sink_output 1" spacing="0"/>
+              <portSpacing port="sink_output 2" spacing="0"/>
+              <description align="center" color="gray" colored="true" height="91" resized="true" width="466" x="188" y="317">This is a replica of the text processing from process 01 - TextMining. The purpose of this subprocess is to remove words and structures from the documents that are useless to the LDA operator.</description>
+            </process>
+            <description align="center" color="transparent" colored="false" width="126">Loop over the individual documents to apply text processing steps</description>
+          </operator>
+          <operator activated="true" class="text:documents_to_data" compatibility="9.4.000" expanded="true" height="82" name="Documents to Data" width="90" x="514" y="34">
+            <parameter key="text_attribute" value="FullText"/>
+            <parameter key="add_meta_information" value="true"/>
+            <parameter key="datamanagement" value="double_sparse_array"/>
+            <parameter key="data_management" value="auto"/>
+            <parameter key="use_processed_text" value="true"/>
+            <description align="center" color="transparent" colored="false" width="126">Gather the processed documents back into a dataset</description>
+          </operator>
+          <connect from_port="in 1" to_op="Data to Documents" to_port="example set"/>
+          <connect from_op="Data to Documents" from_port="documents" to_op="Preprocess Text (Loop Collection)" to_port="collection"/>
+          <connect from_op="Preprocess Text (Loop Collection)" from_port="output 1" to_op="Documents to Data" to_port="documents 1"/>
+          <connect from_op="Documents to Data" from_port="example set" to_port="out 1"/>
+          <portSpacing port="source_in 1" spacing="0"/>
+          <portSpacing port="source_in 2" spacing="0"/>
+          <portSpacing port="sink_out 1" spacing="0"/>
+          <portSpacing port="sink_out 2" spacing="0"/>
+        </process>
+        <description align="center" color="transparent" colored="false" width="126">Process text by applying the text mining from process 01 to the raw text</description>
+      </operator>
+      <operator activated="true" class="operator_toolbox:set_metadata" compatibility="2.13.000" expanded="true" height="68" name="Set Meta Data" width="90" x="447" y="34">
+        <list key="attributes">
+          <parameter key="FullText" value="text.regular"/>
+          <parameter key="TicketType" value="nominal.regular"/>
+          <parameter key="PostTitle" value="polynominal.regular"/>
+          <parameter key="CreationDate" value="date.regular"/>
+        </list>
+        <parameter key="remove_duplicate_roles" value="false"/>
+      </operator>
+      <operator activated="true" class="operator_toolbox:group_into_collection" compatibility="2.13.000" expanded="true" height="82" name="Group Into Collection" width="90" x="581" y="34">
+        <parameter key="group_by_attribute" value="TicketType"/>
+        <parameter key="group_by_attribute (numerical)" value=""/>
+        <parameter key="sorting_order" value="none"/>
+        <description align="center" color="transparent" colored="false" width="126">Group the data by ticket type to build a topic model for each ticket type</description>
+      </operator>
+      <operator activated="true" class="loop_collection" compatibility="9.10.001" expanded="true" height="82" name="Loop Collection (2)" width="90" x="782" y="34">
+        <parameter key="set_iteration_macro" value="false"/>
+        <parameter key="macro_name" value="iteration"/>
+        <parameter key="macro_start_value" value="1"/>
+        <parameter key="unfold" value="false"/>
+        <process expanded="true">
+          <operator activated="true" class="extract_macro" compatibility="9.10.001" expanded="true" height="68" name="Extract Macro" width="90" x="112" y="34">
+            <parameter key="macro" value="ticket"/>
+            <parameter key="macro_type" value="data_value"/>
+            <parameter key="statistics" value="average"/>
+            <parameter key="attribute_name" value="TicketType"/>
+            <parameter key="example_index" value="1"/>
+            <list key="additional_macros"/>
+            <description align="center" color="transparent" colored="false" width="126">Extract the TicketType out as the 'ticket' macro</description>
+          </operator>
+          <operator activated="true" breakpoints="before" class="operator_toolbox:lda_exampleset" compatibility="2.13.000" expanded="true" height="124" name="Extract Topics from Data (LDA)" width="90" x="246" y="34">
+            <parameter key="text_attribute" value="FullText"/>
+            <parameter key="number_of_topics" value="10"/>
+            <parameter key="show_optimization_settings" value="false"/>
+            <parameter key="use_alpha_heuristics" value="true"/>
+            <parameter key="alpha_sum" value="0.1"/>
+            <parameter key="use_beta_heuristics" value="true"/>
+            <parameter key="beta" value="0.01"/>
+            <parameter key="optimize_hyperparameters" value="true"/>
+            <parameter key="optimize_interval_for_hyperparameters" value="10"/>
+            <parameter key="iterations" value="1000"/>
+            <parameter key="top_words_per_topic" value="10"/>
+            <parameter key="stopword language" value="english"/>
+            <parameter key="reproducible" value="false"/>
+            <parameter key="enable_logging" value="false"/>
+            <parameter key="use_local_random_seed" value="false"/>
+            <parameter key="local_random_seed" value="1992"/>
+            <description align="center" color="transparent" colored="false" width="126">Train and LDA for the current TicketType</description>
+          </operator>
+          <operator activated="true" class="store" compatibility="9.10.001" expanded="true" height="68" name="Store (4)" width="90" x="447" y="493">
+            <parameter key="repository_entry" value="../Results/%{ticket}/Performance"/>
+            <description align="center" color="transparent" colored="false" width="126">Store in the TicketType folder as Performance</description>
+          </operator>
+          <operator activated="true" class="store" compatibility="9.10.001" expanded="true" height="68" name="Store (3)" width="90" x="447" y="340">
+            <parameter key="repository_entry" value="../Results/%{ticket}/TopicModel"/>
+            <description align="center" color="transparent" colored="false" width="126">Store in the TicketType folder as TopicModel</description>
+          </operator>
+          <operator activated="true" class="store" compatibility="9.10.001" expanded="true" height="68" name="Store (2)" width="90" x="447" y="187">
+            <parameter key="repository_entry" value="../Results/%{ticket}/Topics"/>
+            <description align="center" color="transparent" colored="false" width="126">Store in the TicketType folder as Topics</description>
+          </operator>
+          <operator activated="true" class="store" compatibility="9.10.001" expanded="true" height="68" name="Store" width="90" x="447" y="34">
+            <parameter key="repository_entry" value="../Results/%{ticket}/ExampleSet"/>
+            <description align="center" color="transparent" colored="false" width="126">Store in the TicketType folder as ExampleSet</description>
+          </operator>
+          <connect from_port="single" to_op="Extract Macro" to_port="example set"/>
+          <connect from_op="Extract Macro" from_port="example set" to_op="Extract Topics from Data (LDA)" to_port="exa"/>
+          <connect from_op="Extract Topics from Data (LDA)" from_port="exa" to_op="Store" to_port="input"/>
+          <connect from_op="Extract Topics from Data (LDA)" from_port="top" to_op="Store (2)" to_port="input"/>
+          <connect from_op="Extract Topics from Data (LDA)" from_port="mod" to_op="Store (3)" to_port="input"/>
+          <connect from_op="Extract Topics from Data (LDA)" from_port="per" to_op="Store (4)" to_port="input"/>
+          <connect from_op="Store" from_port="through" to_port="output 1"/>
+          <portSpacing port="source_single" spacing="0"/>
+          <portSpacing port="sink_output 1" spacing="0"/>
+          <portSpacing port="sink_output 2" spacing="0"/>
+          <description align="center" color="blue" colored="true" height="105" resized="false" width="180" x="582" y="87">The store operators utilize the macro %{ticket} to write the results to the current TicketType folder</description>
+          <description align="center" color="green" colored="true" height="216" resized="true" width="326" x="46" y="239">This subprocess generates an LDA topic model with 10 topics for each TicketType. The loop is taking the collection, where each object in the collection is the data for an individual ticket type, and applying the Extract Topics from Data (LDA) to each dataset. &lt;br/&gt;&lt;br/&gt;The result is a model, performance, Topic dataset, and scored data.&lt;br/&gt;</description>
+        </process>
+        <description align="center" color="transparent" colored="false" width="126">Loops over the data in the collection</description>
+      </operator>
+      <connect from_op="Retrieve AllTickets" from_port="output" to_op="Sample" to_port="example set input"/>
+      <connect from_op="Sample" from_port="example set output" to_op="Preprocess Text" to_port="in 1"/>
+      <connect from_op="Preprocess Text" from_port="out 1" to_op="Set Meta Data" to_port="exa"/>
+      <connect from_op="Set Meta Data" from_port="exa" to_op="Group Into Collection" to_port="exa"/>
+      <connect from_op="Group Into Collection" from_port="col" to_op="Loop Collection (2)" to_port="collection"/>
+      <connect from_op="Loop Collection (2)" from_port="output 1" to_port="result 1"/>
+      <portSpacing port="source_input 1" spacing="0"/>
+      <portSpacing port="sink_result 1" spacing="0"/>
+      <portSpacing port="sink_result 2" spacing="0"/>
+      <description align="center" color="purple" colored="true" height="367" resized="true" width="280" x="10" y="10">&lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br/&gt;&lt;br/&gt;&lt;br&gt;Connect to the raw data. The LDA Topic Model handles raw text.</description>
+      <description align="center" color="red" colored="true" height="366" resized="true" width="411" x="292" y="10">&lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; This portion preprocesses the raw text to remove stopwords and apply other transformations to the text before it is used by the LDA Topic Model.</description>
+      <description align="center" color="green" colored="true" height="366" resized="true" width="223" x="706" y="10">&lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; &lt;br&gt; Builds a Topic Model with 10 Topics for each Ticket Type</description>
+      <description align="center" color="yellow" colored="false" height="153" resized="true" width="918" x="10" y="381">&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;LDA Topic Model generates a defined number of topics based on extracted key words from a text column or document.</description>
+    </process>
+  </operator>
+</process>
